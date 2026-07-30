@@ -116,18 +116,36 @@
     drawProjects(mount, items, "all");
     if (opts.filters) buildFilters(opts.filters, mount, items);
   };
+  // Return an array of photo URLs for an item (new images[] with image_url fallback)
+  function galleryOf(item) {
+    if (Array.isArray(item.images) && item.images.length) return item.images.filter(Boolean);
+    if (item.image_url) return [item.image_url];
+    return [];
+  }
+  window.ASPRO.galleryOf = galleryOf;
+
   function drawProjects(mount, items, cat) {
     const list = cat === "all" ? items : items.filter(p => p.category === cat);
     if (!list.length) { mount.innerHTML = `<p class="note">No projects to show yet.</p>`; return; }
-    mount.innerHTML = list.map(p => `
-      <article class="card">
-        <div class="thumb" style="${p.image_url ? `background-image:url('${esc(p.image_url)}')` : ""}"></div>
+    mount.innerHTML = list.map((p, i) => {
+      const g = galleryOf(p);
+      const cover = g[0];
+      return `
+      <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
+        <div class="thumb" style="${cover ? `background-image:url('${esc(cover)}')` : ""}">
+          ${g.length > 1 ? `<span class="photo-badge">&#128247; ${g.length}</span>` : ""}
+        </div>
         <div class="body">
           <span class="tag">${esc(CATS[p.category] || p.category || "Project")}</span>
           <h3 style="margin:.5em 0 .3em;font-size:1.2rem">${esc(p.title)}</h3>
           <p class="note">${esc(p.description || "")}</p>
         </div>
-      </article>`).join("");
+      </article>`;
+    }).join("");
+    mount.querySelectorAll(".card-clickable").forEach(card => card.addEventListener("click", () => {
+      const p = list[+card.dataset.gi];
+      openGallery(galleryOf(p), 0, p.title);
+    }));
   }
   function buildFilters(barId, mount, items) {
     const bar = document.getElementById(barId);
@@ -183,15 +201,63 @@
     const { data, error } = await fetchTable("bts_posts", { col: "created_at", asc: false });
     const items = (data && data.length) ? data : (error ? SAMPLE.bts : []);
     if (!items.length) { mount.innerHTML = `<p class="note">Updates coming soon.</p>`; return; }
-    mount.innerHTML = items.map(b => `
-      <article class="card">
-        <div class="thumb" style="${b.image_url ? `background-image:url('${esc(b.image_url)}')` : ""}"></div>
+    mount.innerHTML = items.map((b, i) => {
+      const g = galleryOf(b);
+      const cover = g[0];
+      return `
+      <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
+        <div class="thumb" style="${cover ? `background-image:url('${esc(cover)}')` : ""}">
+          ${g.length > 1 ? `<span class="photo-badge">&#128247; ${g.length}</span>` : ""}
+        </div>
         <div class="body">
           <h3 style="margin:.2em 0 .4em;font-size:1.15rem">${esc(b.title)}</h3>
           <p class="note">${esc(b.body || "")}</p>
         </div>
-      </article>`).join("");
+      </article>`;
+    }).join("");
+    mount.querySelectorAll(".card-clickable").forEach(card => card.addEventListener("click", () => {
+      const b = items[+card.dataset.gi];
+      openGallery(galleryOf(b), 0, b.title);
+    }));
   };
+
+  /* ---- Lightbox gallery ---- */
+  function openGallery(images, start, title) {
+    images = (images || []).filter(Boolean);
+    if (!images.length) return;
+    let idx = start || 0;
+    let overlay = document.getElementById("aspro-lightbox");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "aspro-lightbox";
+      overlay.className = "lightbox";
+      overlay.innerHTML =
+        `<button class="lb-close" aria-label="Close">&times;</button>
+         <button class="lb-prev" aria-label="Previous">&#10094;</button>
+         <img class="lb-img" alt="">
+         <button class="lb-next" aria-label="Next">&#10095;</button>
+         <div class="lb-caption"></div>`;
+      document.body.appendChild(overlay);
+    }
+    const img = overlay.querySelector(".lb-img");
+    const cap = overlay.querySelector(".lb-caption");
+    const prev = overlay.querySelector(".lb-prev");
+    const next = overlay.querySelector(".lb-next");
+    const multi = images.length > 1;
+    prev.style.display = next.style.display = multi ? "" : "none";
+    function show() { img.src = images[idx]; cap.textContent = (title ? title + " " : "") + (multi ? `(${idx + 1}/${images.length})` : ""); }
+    function go(d) { idx = (idx + d + images.length) % images.length; show(); }
+    function close() { overlay.classList.remove("open"); document.removeEventListener("keydown", key); }
+    function key(e) { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1); }
+    prev.onclick = (e) => { e.stopPropagation(); go(-1); };
+    next.onclick = (e) => { e.stopPropagation(); go(1); };
+    overlay.querySelector(".lb-close").onclick = close;
+    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+    document.addEventListener("keydown", key);
+    show();
+    overlay.classList.add("open");
+  }
+  window.ASPRO.openGallery = openGallery;
 
   /* ---- Contact form (Web3Forms -> email) ---- */
   window.ASPRO.initContactForm = function (formId, statusId) {

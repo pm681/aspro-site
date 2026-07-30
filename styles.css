@@ -69,7 +69,31 @@ img{max-width:100%;display:block}
 .card{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;
       transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,.10)}
-.card .thumb{aspect-ratio:4/3;background:#e9e9e4 center/cover no-repeat}
+.card .thumb{aspect-ratio:4/3;background:#e9e9e4 center/cover no-repeat;position:relative}
+.card-clickable{cursor:pointer}
+.card-clickable .thumb::after{content:"";position:absolute;inset:0;background:rgba(26,31,43,0);transition:.2s}
+.card-clickable:hover .thumb::after{background:rgba(26,31,43,.12)}
+.photo-badge{position:absolute;top:8px;right:8px;background:rgba(26,31,43,.85);color:#fff;font-size:.72rem;
+  font-weight:600;padding:3px 9px;border-radius:20px;z-index:1}
+
+/* Lightbox */
+.lightbox{position:fixed;inset:0;z-index:1000;background:rgba(10,12,18,.93);display:none;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox .lb-img{max-width:90vw;max-height:84vh;object-fit:contain;border-radius:6px;box-shadow:0 12px 44px rgba(0,0,0,.55)}
+.lightbox .lb-close{position:absolute;top:14px;right:22px;background:none;border:0;color:#fff;font-size:2.5rem;line-height:1;cursor:pointer}
+.lightbox .lb-prev,.lightbox .lb-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);
+  border:0;color:#fff;font-size:1.8rem;padding:14px 18px;border-radius:6px;cursor:pointer}
+.lightbox .lb-prev{left:20px}.lightbox .lb-next{right:20px}
+.lightbox .lb-prev:hover,.lightbox .lb-next:hover{background:rgba(255,255,255,.26)}
+.lightbox .lb-caption{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#e7e9ee;font-size:.9rem}
+@media(max-width:620px){.lightbox .lb-prev,.lightbox .lb-next{padding:10px 12px;font-size:1.4rem}}
+
+/* Admin gallery thumbs */
+.gallery-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.gthumb{position:relative;width:88px;height:66px}
+.gthumb img{width:100%;height:100%;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.gthumb button{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:0;
+  background:#b02222;color:#fff;font-size:.8rem;line-height:1;cursor:pointer}
 .card .body{padding:18px}
 .tag{display:inline-block;background:#f0ead9;color:var(--amber-dark);font-size:.72rem;font-weight:700;
      text-transform:uppercase;letter-spacing:1px;padding:4px 10px;border-radius:20px}

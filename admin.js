@@ -65,9 +65,9 @@
         { key: "category", label: "Category", type: "select", options: CATS },
         { key: "description", label: "Description", type: "textarea" },
         { key: "sort_order", label: "Sort order", type: "number" },
-        { key: "image_url", label: "Photo", type: "image" }
+        { key: "images", label: "Photos", type: "gallery" }
       ],
-      title: (r) => r.title, sub: (r) => CATS[r.category] || r.category || "", img: (r) => r.image_url
+      title: (r) => r.title, sub: (r) => CATS[r.category] || r.category || "", img: (r) => (Array.isArray(r.images) && r.images[0]) || r.image_url
     },
     team_members: {
       table: "team_members", order: "sort_order",
@@ -95,9 +95,9 @@
       fields: [
         { key: "title", label: "Title", type: "text", required: true },
         { key: "body", label: "Note", type: "textarea" },
-        { key: "image_url", label: "Photo", type: "image" }
+        { key: "images", label: "Photos", type: "gallery" }
       ],
-      title: (r) => r.title, sub: (r) => "", img: (r) => r.image_url
+      title: (r) => r.title, sub: (r) => "", img: (r) => (Array.isArray(r.images) && r.images[0]) || r.image_url
     }
   };
   const LABELS = { projects: "Projects", team_members: "Team", testimonials: "Testimonials", bts_posts: "Behind the Scenes" };
@@ -153,6 +153,11 @@
       if (f.type === "select")
         return field(f, `<select name="${f.key}">${Object.entries(f.options).map(([v, l]) =>
           `<option value="${v}" ${v === val ? "selected" : ""}>${l}</option>`).join("")}</select>`);
+      if (f.type === "gallery")
+        return `<div class="field"><label>${f.label}</label>
+          <div class="gallery-thumbs" data-gkey="${f.key}"></div>
+          <input type="file" name="${f.key}__files" accept="image/*" multiple>
+          <p class="note">Add one or more photos (select several at once). Click the &times; on a photo to remove it. The first photo is the cover shown on the card.</p></div>`;
       if (f.type === "image")
         return `<div class="field"><label>${f.label}</label>
           ${val ? `<img src="${esc(val)}" style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin-bottom:8px">` : ""}
@@ -168,6 +173,27 @@
     function field(f, inner) {
       return `<div class="field"><label>${f.label}${f.required ? " *" : ""}</label>${inner}</div>`;
     }
+
+    // Gallery fields: manage a live array of photo URLs
+    const galleryState = {};
+    function drawGalleryThumbs(key) {
+      const box = form.querySelector(`.gallery-thumbs[data-gkey="${key}"]`);
+      if (!box) return;
+      box.innerHTML = galleryState[key].map((url, i) =>
+        `<span class="gthumb"><img src="${esc(url)}" alt=""><button type="button" data-rm="${i}" title="Remove">&times;</button></span>`).join("");
+      box.querySelectorAll("[data-rm]").forEach(b => b.addEventListener("click", () => {
+        galleryState[key].splice(+b.dataset.rm, 1); drawGalleryThumbs(key);
+      }));
+    }
+    cfg.fields.filter(f => f.type === "gallery").forEach(f => {
+      const init = editing
+        ? (Array.isArray(record[f.key]) && record[f.key].length ? record[f.key].slice()
+           : (record.image_url ? [record.image_url] : []))
+        : [];
+      galleryState[f.key] = init.filter(Boolean);
+      drawGalleryThumbs(f.key);
+    });
+
     const cancel = $("cancel-edit");
     if (cancel) cancel.addEventListener("click", () => renderForm(cfg, null));
 
@@ -180,7 +206,13 @@
         const fd = new FormData(form);
         const payload = {};
         for (const f of cfg.fields) {
-          if (f.type === "image") {
+          if (f.type === "gallery") {
+            const files = fd.getAll(f.key + "__files").filter(x => x && x.size);
+            const arr = (galleryState[f.key] || []).slice();
+            for (const file of files) arr.push(await uploadImage(file));
+            payload[f.key] = arr;                 // full photo array
+            payload.image_url = arr[0] || null;   // keep a cover for fallbacks
+          } else if (f.type === "image") {
             const file = fd.get(f.key + "__file");
             if (file && file.size) payload[f.key] = await uploadImage(file);
             else if (editing) payload[f.key] = record[f.key] || null;
@@ -190,9 +222,16 @@
             payload[f.key] = fd.get(f.key);
           }
         }
-        let res;
-        if (editing) res = await sb.from(cfg.table).update(payload).eq("id", record.id);
-        else res = await sb.from(cfg.table).insert(payload);
+        const write = (pl) => editing
+          ? sb.from(cfg.table).update(pl).eq("id", record.id)
+          : sb.from(cfg.table).insert(pl);
+        let res = await write(payload);
+        // Graceful fallback if the images[] column hasn't been added to the DB yet
+        if (res.error && payload.images && /images/i.test(res.error.message || "") &&
+            /(column|does not exist|schema)/i.test(res.error.message || "")) {
+          const clone = Object.assign({}, payload); delete clone.images;
+          res = await write(clone);
+        }
         if (res.error) throw res.error;
         status.innerHTML = `<div class="alert alert-ok">Saved.</div>`;
         renderForm(cfg, null);
