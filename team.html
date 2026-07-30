@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team — Aspro Construction</title>
+  <meta name="description" content="Meet the people behind Aspro Construction — leadership, field operations, and preconstruction.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+</head>
+<body data-page="team.html">
+  <header id="site-header"></header>
+
+  <section class="section band">
+    <div class="container">
+      <span class="eyebrow">Meet Our Team</span>
+      <h1 style="font-size:2.6rem;margin:.2em 0">The people behind our success</h1>
+      <p style="max-width:640px;color:#c3c7d0">Strong, skilled, nice, and getting the job done.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="team" class="grid grid-3"></div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="app.js"></script>
+  <script>ASPRO.renderTeam("team");</script>
+</body>
+</html>

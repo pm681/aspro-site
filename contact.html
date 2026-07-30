@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact — Aspro Construction</title>
+  <meta name="description" content="Request a quote or get in touch with Aspro Construction.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+</head>
+<body data-page="contact.html">
+  <header id="site-header"></header>
+
+  <section class="section band">
+    <div class="container">
+      <span class="eyebrow">Get in touch</span>
+      <h1 style="font-size:2.6rem;margin:.2em 0">Let's build something.</h1>
+      <p style="max-width:640px;color:#c3c7d0">Tell us about your project and we'll get back to you shortly.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container grid grid-2" style="align-items:start">
+      <div>
+        <form id="contact-form">
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required autocomplete="email">
+          </div>
+          <div class="field">
+            <label for="phone">Phone (optional)</label>
+            <input id="phone" name="phone" autocomplete="tel">
+          </div>
+          <div class="field">
+            <label for="project_type">Project type</label>
+            <select id="project_type" name="project_type">
+              <option>Custom Home</option>
+              <option>Multifamily</option>
+              <option>Commercial</option>
+              <option>Institutional</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="message">Project details</label>
+            <textarea id="message" name="message" required></textarea>
+          </div>
+          <!-- Honeypot spam trap (leave empty) -->
+          <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+          <button type="submit" class="btn btn-primary">Send message</button>
+          <div id="form-status"></div>
+        </form>
+      </div>
+      <div>
+        <div class="service">
+          <h3>Contact details</h3>
+          <p id="c-phone"></p>
+          <p id="c-email"></p>
+          <p id="c-address"></p>
+          <p id="c-hours"></p>
+          <p class="note" style="margin-top:18px">Prefer email? Messages from this form are delivered straight to our inbox.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="app.js"></script>
+  <script>
+    ASPRO.initContactForm("contact-form", "form-status");
+    const C = ASPRO.C || {};
+    if (C.phone)   document.getElementById("c-phone").innerHTML   = `📞 <a href="tel:${C.phone}">${C.phone}</a>`;
+    if (C.email)   document.getElementById("c-email").innerHTML   = `✉️ <a href="mailto:${C.email}">${C.email}</a>`;
+    if (C.address) document.getElementById("c-address").textContent = "📍 " + C.address;
+    if (C.hours)   document.getElementById("c-hours").textContent   = "🕘 " + C.hours;
+  </script>
+</body>
+</html>

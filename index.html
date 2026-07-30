@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aspro Construction — Custom Homes, Multifamily, Commercial &amp; Institutional</title>
+  <meta name="description" content="Aspro Construction builds custom homes, multifamily, commercial, and institutional projects with precision and pride. View our portfolio and request a quote.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+</head>
+<body data-page="index.html">
+  <header id="site-header"></header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <span class="eyebrow" style="color:var(--amber)">Over 20 Years of Excellence in Upstate NY</span>
+      <h1>Aspro Construction</h1>
+      <p>Building dreams with precision throughout Upstate NY. Your trusted general contractor for custom homes, multifamily, commercial, and institutional projects.</p>
+      <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap">
+        <a href="projects.html" class="btn btn-primary">View Our Work</a>
+        <a href="contact.html" class="btn btn-ghost">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="section">
+    <div class="container">
+      <span class="eyebrow">What we build</span>
+      <h2 style="font-size:2rem;margin:.2em 0 1em">Our Expertise</h2>
+      <div class="grid grid-2">
+        <div class="service"><div class="ico">🏡</div><h3>Custom Homes</h3>
+          <p class="note">Crafting bespoke residences that reflect your unique vision and lifestyle, built with meticulous attention to detail.</p></div>
+        <div class="service"><div class="ico">🏢</div><h3>Multifamily</h3>
+          <p class="note">Developing quality multifamily housing that combines modern living standards with sustainable construction practices.</p></div>
+        <div class="service"><div class="ico">🏬</div><h3>Commercial</h3>
+          <p class="note">Constructing commercial spaces designed for efficiency, functionality, and lasting impressions.</p></div>
+        <div class="service"><div class="ico">🏛️</div><h3>Institutional</h3>
+          <p class="note">Building institutional facilities that serve communities with durability, safety, and architectural distinction.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section paper">
+    <div class="container grid grid-2" style="align-items:center;gap:40px">
+      <div>
+        <span class="eyebrow">About Us</span>
+        <h2 style="font-size:2rem;margin:.2em 0 .6em">Building Excellence Since 2004</h2>
+        <p>At Aspro Construction, we bring over two decades of expertise to every project throughout the Upstate NY area. As a trusted general contractor, we've built our reputation on delivering exceptional quality, transparent communication, and unwavering commitment to our clients' visions.</p>
+        <p>From custom homes to large-scale commercial developments, our experienced team handles every aspect of construction with precision and care. We don't just build structures—we build lasting relationships.</p>
+      </div>
+      <div class="stats" style="grid-template-columns:1fr 1fr">
+        <div class="service"><div class="n">20+</div><div>Years Experience</div></div>
+        <div class="service"><div class="n">2004</div><div>Building Since</div></div>
+        <div class="service"><div class="n">100%</div><div>Commitment</div></div>
+        <div class="service"><div class="n">4</div><div>Sectors Served</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED PROJECTS -->
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:12px">
+        <div><span class="eyebrow">Portfolio</span>
+          <h2 style="font-size:2rem;margin:.2em 0">Featured projects</h2></div>
+        <a href="projects.html" class="btn btn-dark">See all projects</a>
+      </div>
+      <div id="featured" class="grid grid-3" style="margin-top:26px"></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section">
+    <div class="container" style="text-align:center">
+      <h2 style="font-size:2rem">Have a project in mind?</h2>
+      <p class="note" style="max-width:560px;margin:0 auto 22px">Tell us about your vision and we'll help you scope, budget, and build it.</p>
+      <a href="contact.html" class="btn btn-primary">Start the conversation</a>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="app.js"></script>
+  <script>
+    // Show up to 6 projects on the home page
+    (async () => {
+      await ASPRO.renderProjects("featured", { limit: 6 });
+    })();
+  </script>
+</body>
+</html>
