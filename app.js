@@ -29,6 +29,38 @@
     document.head.appendChild(fav);
   })();
 
+  /* ---- Scroll reveal + animated stat counters ---- */
+  (function () {
+    function countUp(el) {
+      if (el.dataset.done) return; el.dataset.done = "1";
+      const target = +el.getAttribute("data-count"), suffix = el.getAttribute("data-suffix") || "";
+      const dur = 1100, t0 = performance.now();
+      (function step(t) {
+        const p = Math.min((t - t0) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+    function init() {
+      const reveals = [...document.querySelectorAll(".reveal")];
+      if (!("IntersectionObserver" in window)) {
+        reveals.forEach(r => r.classList.add("in"));
+        document.querySelectorAll("[data-count]").forEach(countUp);
+        return;
+      }
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          e.target.classList.add("in");
+          e.target.querySelectorAll("[data-count]").forEach(countUp);
+          io.unobserve(e.target);
+        });
+      }, { threshold: 0.15 });
+      reveals.forEach(r => io.observe(r));
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+  })();
+
   /* ---- Header + Footer injection ---- */
   const page = document.body.getAttribute("data-page") || "";
   const nav = [

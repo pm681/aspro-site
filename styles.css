@@ -99,9 +99,35 @@ img{max-width:100%;display:block}
      text-transform:uppercase;letter-spacing:1px;padding:4px 10px;border-radius:20px}
 
 /* Services */
-.service{padding:26px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.service{padding:28px;border:1px solid var(--line);border-radius:12px;background:#fff;position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s,border-color .25s}
+.service::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber);
+  transform:scaleY(0);transform-origin:top;transition:transform .3s}
+.service:hover{transform:translateY(-6px);box-shadow:0 16px 38px rgba(26,31,43,.13);border-color:transparent}
+.service:hover::before{transform:scaleY(1)}
 .service .ico{font-size:1.8rem}
-.service h3{font-size:1.15rem;margin:.5em 0 .3em}
+.service h3{font-size:1.18rem;margin:.7em 0 .35em}
+.svc-ico{display:inline-grid;place-items:center;width:56px;height:56px;border-radius:14px;font-size:1.7rem;
+  background:var(--amber-soft,#fdf0d8);box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);transition:transform .25s}
+.service:hover .svc-ico{transform:scale(1.08) rotate(-3deg)}
+/* per-card brand accents */
+.svc-amber{--accent:#f5a623}.svc-amber .svc-ico{background:#fdefd4}
+.svc-blue{--accent:#2f2e9e}.svc-blue .svc-ico{background:#e4e4f6}
+.svc-red{--accent:#d3202a}.svc-red .svc-ico{background:#fbe0e1}
+.svc-navy{--accent:#1a1f2b}.svc-navy .svc-ico{background:#e6e8ee}
+.svc-amber::before,.svc-blue::before,.svc-red::before,.svc-navy::before{background:var(--accent)}
+.svc-blue:hover h3,.svc-red:hover h3,.svc-amber:hover h3,.svc-navy:hover h3{color:var(--accent)}
+
+/* Stat cards */
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;text-align:center;
+  transition:transform .25s,box-shadow .25s}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(26,31,43,.1)}
+.stat-card .n{font-family:'Oswald';font-size:2.7rem;line-height:1;color:var(--amber-dark);letter-spacing:1px}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;text-align:center}
 .stats .n{font-family:'Oswald';font-size:2.6rem;color:var(--amber-dark)}
