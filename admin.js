@@ -43,17 +43,47 @@
 
   $("logout").addEventListener("click", async () => { await sb.auth.signOut(); showLogin(); });
 
-  /* ---------- IMAGE UPLOAD ---------- */
+  /* ---------- IMAGE UPLOAD (compress + retry) ---------- */
+  // Shrink big photos in the browser first: smaller uploads are faster and far
+  // more likely to get past strict network filters.
+  function loadImg(src) {
+    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  }
+  async function compressImage(file) {
+    if (!/^image\/(jpe?g|png|webp)$/i.test(file.type)) return file; // leave other types as-is
+    try {
+      const url = URL.createObjectURL(file);
+      const img = await loadImg(url);
+      URL.revokeObjectURL(url);
+      const MAX = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (Math.max(w, h) > MAX) { const s = MAX / Math.max(w, h); w = Math.round(w * s); h = Math.round(h * s); }
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.82));
+      if (blob && blob.size < file.size)
+        return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+      return file;
+    } catch (_) { return file; }
+  }
   async function uploadImage(file) {
     if (!file) return null;
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await sb.storage.from(bucket).upload(name, file, {
-      cacheControl: "3600", upsert: false, contentType: file.type
-    });
-    if (error) throw error;
-    const { data } = sb.storage.from(bucket).getPublicUrl(name);
-    return data.publicUrl;
+    const data = await compressImage(file);
+    const isNet = (e) => /fetch|network|timeout|load failed/i.test((e && e.message) || "");
+    let lastErr;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+      try {
+        const { error } = await sb.storage.from(bucket).upload(name, data, {
+          cacheControl: "3600", upsert: true, contentType: data.type || "image/jpeg"
+        });
+        if (!error) return sb.storage.from(bucket).getPublicUrl(name).data.publicUrl;
+        lastErr = error;
+        if (!isNet(error)) throw error;           // real error (permissions, etc.) — don't retry
+      } catch (e) { lastErr = e; if (!isNet(e)) throw e; }
+      await new Promise(r => setTimeout(r, 700 * (attempt + 1))); // back off, then retry
+    }
+    throw new Error("Upload kept failing (network/filter). " + ((lastErr && lastErr.message) || ""));
   }
 
   /* ---------- TABS ---------- */
