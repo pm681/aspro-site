@@ -41,22 +41,25 @@
         if (p < 1) requestAnimationFrame(step);
       })(t0);
     }
+    function revealAll(list) {
+      list.forEach(r => { r.classList.add("in"); r.querySelectorAll("[data-count]").forEach(countUp); });
+    }
     function init() {
       const reveals = [...document.querySelectorAll(".reveal")];
-      if (!("IntersectionObserver" in window)) {
-        reveals.forEach(r => r.classList.add("in"));
-        document.querySelectorAll("[data-count]").forEach(countUp);
-        return;
-      }
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (!e.isIntersecting) return;
-          e.target.classList.add("in");
-          e.target.querySelectorAll("[data-count]").forEach(countUp);
-          io.unobserve(e.target);
-        });
-      }, { threshold: 0.15 });
-      reveals.forEach(r => io.observe(r));
+      if (!("IntersectionObserver" in window)) { revealAll(reveals); return; }
+      try {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (!e.isIntersecting) return;
+            e.target.classList.add("in");
+            e.target.querySelectorAll("[data-count]").forEach(countUp);
+            io.unobserve(e.target);
+          });
+        }, { threshold: 0.15 });
+        reveals.forEach(r => io.observe(r));
+        // safety net: never leave any section hidden, even if something goes wrong
+        setTimeout(() => revealAll(reveals), 6000);
+      } catch (_) { revealAll(reveals); }
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
   })();
