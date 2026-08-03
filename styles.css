@@ -4,6 +4,10 @@
   --charcoal-2:#232a38;
   --amber:#f5a623;
   --amber-dark:#d98a10;
+  --amber-soft:#fdefd4;
+  --blue:#2f2e9e;
+  --blue-dark:#20205f;
+  --red:#d3202a;
   --paper:#f7f7f5;
   --line:#e5e5e0;
 }
@@ -30,8 +34,8 @@ img{max-width:100%;display:block}
 .btn-primary:hover{background:var(--amber-dark);color:#fff}
 .btn-ghost{border-color:#fff;color:#fff}
 .btn-ghost:hover{background:#fff;color:var(--charcoal)}
-.btn-dark{background:var(--charcoal);color:#fff}
-.btn-dark:hover{background:var(--charcoal-2)}
+.btn-dark{background:var(--blue);color:#fff}
+.btn-dark:hover{background:var(--blue-dark)}
 
 /* Header */
 .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);
@@ -41,7 +45,7 @@ img{max-width:100%;display:block}
 .brand-logo{height:46px;width:auto;display:block}
 .nav{display:flex;gap:26px;align-items:center}
 .nav a{color:#3a3f4b;font-weight:600;font-size:.95rem}
-.nav a:hover,.nav a.active{color:var(--amber-dark)}
+.nav a:hover,.nav a.active{color:var(--blue)}
 .nav-toggle{display:none;background:none;border:0;color:var(--charcoal);font-size:1.6rem;cursor:pointer}
 @media(max-width:860px){
   .brand-logo{height:40px}
@@ -54,7 +58,7 @@ img{max-width:100%;display:block}
 
 /* Hero */
 .hero{position:relative;min-height:78vh;display:flex;align-items:center;color:#fff;
-      background:linear-gradient(rgba(20,24,33,.72),rgba(20,24,33,.80)),
+      background:linear-gradient(120deg, rgba(47,46,158,.82), rgba(20,24,33,.72) 55%, rgba(211,32,42,.55)),
       url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1920&q=80') center/cover}
 .hero h1{font-size:clamp(2.4rem,6vw,4.4rem);margin:.2em 0}
 .hero p{font-size:1.2rem;max-width:640px;color:#e7e9ee}
@@ -95,8 +99,8 @@ img{max-width:100%;display:block}
 .gthumb button{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:0;
   background:#b02222;color:#fff;font-size:.8rem;line-height:1;cursor:pointer}
 .card .body{padding:18px}
-.tag{display:inline-block;background:#f0ead9;color:var(--amber-dark);font-size:.72rem;font-weight:700;
-     text-transform:uppercase;letter-spacing:1px;padding:4px 10px;border-radius:20px}
+.tag{display:inline-block;background:var(--blue);color:#fff;font-size:.72rem;font-weight:700;
+     text-transform:uppercase;letter-spacing:1px;padding:4px 11px;border-radius:20px}
 
 /* Services */
 .service{padding:28px;border:1px solid var(--line);border-radius:12px;background:#fff;position:relative;overflow:hidden;
@@ -133,12 +137,14 @@ img{max-width:100%;display:block}
 .stats .n{font-family:'Oswald';font-size:2.6rem;color:var(--amber-dark)}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
 
-.band{background:var(--charcoal);color:#fff}
+.band{background:linear-gradient(120deg,var(--blue),var(--blue-dark) 70%,#2a0e12);color:#fff;position:relative;overflow:hidden}
+.band::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,166,35,.25),transparent 70%)}
 .band .eyebrow{color:var(--amber)}
 .paper{background:var(--paper)}
 
 /* Testimonials */
-.quote{background:#fff;border:1px solid var(--line);border-left:4px solid var(--amber);
+.quote{background:#fff;border:1px solid var(--line);border-left:4px solid var(--red);
        border-radius:8px;padding:26px}
 .quote p{font-size:1.05rem;font-style:italic}
 .quote .who{margin-top:14px;font-weight:700;font-style:normal}
@@ -147,7 +153,7 @@ img{max-width:100%;display:block}
 /* Team */
 .member .thumb{aspect-ratio:1/1;border-radius:8px}
 .member h3{margin:.6em 0 .1em;font-size:1.15rem}
-.member .role{color:var(--amber-dark);font-weight:600;font-size:.9rem}
+.member .role{color:var(--blue);font-weight:600;font-size:.9rem}
 
 /* Forms */
 .field{margin-bottom:16px}
@@ -161,7 +167,8 @@ img{max-width:100%;display:block}
 .alert-err{background:#fdeaea;color:#b02222;border:1px solid #f3c2c2}
 
 /* Footer */
-.site-footer{background:var(--charcoal);color:#c3c7d0;padding:56px 0 28px;margin-top:40px}
+.site-footer{background:var(--charcoal);color:#c3c7d0;padding:56px 0 28px;margin-top:40px;
+  border-top:5px solid transparent;border-image:linear-gradient(90deg,var(--blue),var(--red),var(--amber)) 1}
 .site-footer h4{color:#fff;font-family:'Oswald';font-size:1.05rem;margin:0 0 12px}
 .site-footer a{color:#c3c7d0}
 .site-footer a:hover{color:var(--amber)}
