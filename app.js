@@ -159,17 +159,35 @@
   }
   window.ASPRO.galleryOf = galleryOf;
 
+  /* ---- Media helpers (photos + videos share one gallery) ---- */
+  const VIDEO_RE = /\.(mp4|webm|ogv|ogg|mov|m4v)(\?.*)?$/i;
+  function isVideo(url) { return VIDEO_RE.test(String(url || "")); }
+  window.ASPRO.isVideo = isVideo;
+
+  // Card thumbnail: a still frame for videos, a background image for photos.
+  function thumbHTML(g) {
+    const cover = g[0];
+    const vids = g.filter(isVideo).length;
+    const badge = g.length > 1
+      ? `<span class="photo-badge">${vids ? "&#127909;" : "&#128247;"} ${g.length}</span>`
+      : (vids ? `<span class="photo-badge">&#127909; Video</span>` : "");
+    if (!cover) return `<div class="thumb"></div>`;
+    if (isVideo(cover))
+      return `<div class="thumb thumb-video">
+          <video src="${esc(cover)}#t=0.1" preload="metadata" muted playsinline></video>
+          <span class="play-badge" aria-hidden="true"></span>${badge}
+        </div>`;
+    return `<div class="thumb" style="background-image:url('${esc(cover)}')">${badge}</div>`;
+  }
+
   function drawProjects(mount, items, cat) {
     const list = cat === "all" ? items : items.filter(p => p.category === cat);
     if (!list.length) { mount.innerHTML = `<p class="note">No projects to show yet.</p>`; return; }
     mount.innerHTML = list.map((p, i) => {
       const g = galleryOf(p);
-      const cover = g[0];
       return `
       <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
-        <div class="thumb" style="${cover ? `background-image:url('${esc(cover)}')` : ""}">
-          ${g.length > 1 ? `<span class="photo-badge">&#128247; ${g.length}</span>` : ""}
-        </div>
+        ${thumbHTML(g)}
         <div class="body">
           <span class="tag">${esc(CATS[p.category] || p.category || "Project")}</span>
           <h3 style="margin:.5em 0 .3em;font-size:1.2rem">${esc(p.title)}</h3>
@@ -219,14 +237,73 @@
     const mount = document.getElementById(mountId);
     if (!mount) return;
     mount.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div>`;
-    const { data, error } = await fetchTable("testimonials", { col: "sort_order", asc: true });
+    let data = null, error = "not-configured";
+    if (sb) {
+      // Only approved testimonials are public. (Row-level security enforces this
+      // too — the filter just keeps the intent obvious.)
+      let res = await sb.from("testimonials").select("*").eq("approved", true)
+                        .order("sort_order", { ascending: true });
+      // Fall back gracefully if the approved column hasn't been added yet.
+      if (res.error && /approved/i.test(res.error.message || ""))
+        res = await sb.from("testimonials").select("*").order("sort_order", { ascending: true });
+      data = res.data; error = res.error;
+    }
     const items = (data && data.length) ? data : (error ? SAMPLE.testimonials : []);
-    if (!items.length) { mount.innerHTML = `<p class="note">Testimonials coming soon.</p>`; return; }
+    if (!items.length) {
+      mount.innerHTML = `<p class="note">No testimonials published yet — be the first to leave one below.</p>`;
+      return;
+    }
     mount.innerHTML = items.map(t => `
       <blockquote class="quote">
         <p>&ldquo;${esc(t.quote)}&rdquo;</p>
         <div class="who">${esc(t.author)}<span>${esc(t.role || "")}</span></div>
       </blockquote>`).join("");
+  };
+
+  /* ---- Public testimonial submission (lands in the admin panel as pending) ---- */
+  window.ASPRO.initTestimonialForm = function (formId, statusId) {
+    const form = document.getElementById(formId);
+    const status = document.getElementById(statusId);
+    if (!form || !status) return;
+    const say = (cls, msg) => { status.innerHTML = `<div class="alert alert-${cls}">${msg}</div>`; };
+
+    if (!sb) { say("err", "The testimonial form isn't connected yet. Please email us instead."); return; }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      status.innerHTML = "";
+      const fd = new FormData(form);
+
+      // Honeypot: real people never fill a hidden field; bots usually do.
+      if (String(fd.get("company_website") || "").trim()) {
+        form.reset();
+        say("ok", "Thank you — your testimonial has been submitted for review.");
+        return;
+      }
+
+      const author = String(fd.get("author") || "").trim().replace(/\s+/g, " ");
+      const quote = String(fd.get("quote") || "").trim();
+      if (author.length < 2) { say("err", "Please enter your name."); return; }
+      if (author.length > 80) { say("err", "Please use a shorter name."); return; }
+      if (quote.length < 10) { say("err", "Please write at least a sentence about your experience."); return; }
+      if (quote.length > 2000) { say("err", "Please keep your testimonial under 2000 characters."); return; }
+
+      const btn = form.querySelector("[type=submit]");
+      const orig = btn.textContent;
+      btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Sending…`;
+      try {
+        const { error } = await sb.from("testimonials")
+          .insert({ author, quote, approved: false, sort_order: 0 });
+        if (error) throw error;
+        form.reset();
+        say("ok", "Thank you! Your testimonial has been submitted and will appear once we've reviewed it.");
+      } catch (err) {
+        console.error("Testimonial submit failed:", err);
+        say("err", "Sorry, we couldn't submit that just now. Please try again, or email us directly.");
+      } finally {
+        btn.disabled = false; btn.textContent = orig;
+      }
+    });
   };
 
   window.ASPRO.renderBTS = async function (mountId) {
@@ -238,12 +315,9 @@
     if (!items.length) { mount.innerHTML = `<p class="note">Updates coming soon.</p>`; return; }
     mount.innerHTML = items.map((b, i) => {
       const g = galleryOf(b);
-      const cover = g[0];
       return `
       <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
-        <div class="thumb" style="${cover ? `background-image:url('${esc(cover)}')` : ""}">
-          ${g.length > 1 ? `<span class="photo-badge">&#128247; ${g.length}</span>` : ""}
-        </div>
+        ${thumbHTML(g)}
         <div class="body">
           <h3 style="margin:.2em 0 .4em;font-size:1.15rem">${esc(b.title)}</h3>
           <p class="note">${esc(b.body || "")}</p>
@@ -256,7 +330,7 @@
     }));
   };
 
-  /* ---- Lightbox gallery ---- */
+  /* ---- Lightbox gallery (photos + videos) ---- */
   function openGallery(images, start, title) {
     images = (images || []).filter(Boolean);
     if (!images.length) return;
@@ -270,20 +344,38 @@
         `<button class="lb-close" aria-label="Close">&times;</button>
          <button class="lb-prev" aria-label="Previous">&#10094;</button>
          <img class="lb-img" alt="">
+         <video class="lb-video" controls playsinline preload="metadata"></video>
          <button class="lb-next" aria-label="Next">&#10095;</button>
          <div class="lb-caption"></div>`;
       document.body.appendChild(overlay);
     }
     const img = overlay.querySelector(".lb-img");
+    const vid = overlay.querySelector(".lb-video");
     const cap = overlay.querySelector(".lb-caption");
     const prev = overlay.querySelector(".lb-prev");
     const next = overlay.querySelector(".lb-next");
     const multi = images.length > 1;
     prev.style.display = next.style.display = multi ? "" : "none";
-    function show() { img.src = images[idx]; cap.textContent = (title ? title + " " : "") + (multi ? `(${idx + 1}/${images.length})` : ""); }
-    function go(d) { idx = (idx + d + images.length) % images.length; show(); }
-    function close() { overlay.classList.remove("open"); document.removeEventListener("keydown", key); }
-    function key(e) { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1); }
+    function stopVideo() { try { vid.pause(); vid.removeAttribute("src"); vid.load(); } catch (_) {} }
+    function show() {
+      const src = images[idx];
+      if (isVideo(src)) {
+        img.style.display = "none"; img.removeAttribute("src");
+        vid.style.display = ""; vid.src = src;
+      } else {
+        stopVideo();
+        vid.style.display = "none";
+        img.style.display = ""; img.src = src;
+      }
+      cap.textContent = (title ? title + " " : "") + (multi ? `(${idx + 1}/${images.length})` : "");
+    }
+    function go(d) { stopVideo(); idx = (idx + d + images.length) % images.length; show(); }
+    function close() { stopVideo(); overlay.classList.remove("open"); document.removeEventListener("keydown", key); }
+    function key(e) {
+      // Let the video's own controls own the spacebar / arrows when it has focus.
+      if (document.activeElement === vid && e.key !== "Escape") return;
+      if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1);
+    }
     prev.onclick = (e) => { e.stopPropagation(); go(-1); };
     next.onclick = (e) => { e.stopPropagation(); go(1); };
     overlay.querySelector(".lb-close").onclick = close;

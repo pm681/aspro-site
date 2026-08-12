@@ -19,6 +19,7 @@
       <span class="eyebrow">Client Testimonials</span>
       <h1 style="font-size:2.6rem;margin:.2em 0">What our clients say about us</h1>
       <p style="max-width:640px;color:#c3c7d0">The relationships we build matter as much as the structures we deliver.</p>
+      <a href="#leave-a-testimonial" class="btn btn-primary" style="margin-top:10px">Leave a testimonial</a>
     </div>
   </section>
 
@@ -28,7 +29,38 @@
     </div>
   </section>
 
-  <section class="section paper">
+  <section class="section paper" id="leave-a-testimonial">
+    <div class="container">
+      <div class="testimonial-form">
+        <span class="eyebrow">Worked with us?</span>
+        <h2 style="font-size:1.8rem;margin:.2em 0">Leave a testimonial</h2>
+        <p class="note" style="margin-bottom:22px">
+          We'd love to hear how your project went. Submissions are reviewed by our
+          team before they appear on this page.
+        </p>
+        <form id="testimonial-form" novalidate>
+          <div class="field">
+            <label for="t-author">Your name *</label>
+            <input id="t-author" name="author" type="text" maxlength="80" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="t-quote">Your testimonial *</label>
+            <textarea id="t-quote" name="quote" maxlength="2000" required
+              placeholder="Tell us about your project and what it was like working with Aspro."></textarea>
+          </div>
+          <!-- Anti-spam honeypot: hidden from people, tempting to bots. -->
+          <div class="hp" aria-hidden="true">
+            <label for="t-website">Company website</label>
+            <input id="t-website" name="company_website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary">Submit testimonial</button>
+          <div id="testimonial-status"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-cta">
     <div class="container" style="text-align:center">
       <h2 style="font-size:1.8rem">Ready to join them?</h2>
       <a href="contact.html" class="btn btn-primary" style="margin-top:14px">Request a Quote</a>
@@ -37,6 +69,9 @@
 
   <footer id="site-footer"></footer>
   <script src="app.js"></script>
-  <script>ASPRO.renderTestimonials("testimonials");</script>
+  <script>
+    ASPRO.renderTestimonials("testimonials");
+    ASPRO.initTestimonialForm("testimonial-form", "testimonial-status");
+  </script>
 </body>
 </html>

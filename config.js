@@ -29,7 +29,12 @@ window.ASPRO_CONFIG = {
     hours:   "Mon – Fri: 9am – 5pm",
     region:  "Upstate NY",
     tagline: "Building dreams with precision throughout Upstate NY.",
-    // Storage bucket where uploaded images live (created by the SQL script)
-    imageBucket: "site-images"
+    // Storage bucket where uploaded photos and videos live (created by the SQL script)
+    imageBucket: "site-images",
+
+    /* Largest video the admin panel will accept, in megabytes.
+       Supabase caps uploads at 50 MB on the Free plan — raise this only if
+       you've raised the limit in Supabase > Storage > Settings.            */
+    maxVideoMB: 50
   }
 };
