@@ -159,25 +159,33 @@
   }
   window.ASPRO.galleryOf = galleryOf;
 
-  /* ---- Media helpers (photos + videos share one gallery) ---- */
-  const VIDEO_RE = /\.(mp4|webm|ogv|ogg|mov|m4v)(\?.*)?$/i;
-  function isVideo(url) { return VIDEO_RE.test(String(url || "")); }
+  // Show a "Download Projects Booklet" button if a booklet PDF has been uploaded
+  window.ASPRO.showBooklet = async function (mountId) {
+    const mount = document.getElementById(mountId);
+    if (!mount || !sb) return;
+    const bucket = (C && C.imageBucket) || "site-images";
+    try {
+      const { data } = await sb.storage.from(bucket).list("booklet", { limit: 20 });
+      const f = (data || []).find(x => x.name === "projects-booklet.pdf");
+      if (!f) return;
+      const ver = f.updated_at ? Date.parse(f.updated_at) : Date.now();
+      const url = sb.storage.from(bucket).getPublicUrl("booklet/projects-booklet.pdf").data.publicUrl + "?v=" + ver;
+      mount.innerHTML = '<a class="btn btn-primary" href="' + esc(url) + '" target="_blank" rel="noopener" style="font-size:1.05rem">\u{1F4C4} Download our Projects Booklet (PDF)</a>';
+    } catch (_) {}
+  };
+
+  // Is this URL a video file?
+  function isVideo(url) { return /\.(mp4|webm|ogg|ogv|mov|m4v|qt)(\?|#|$)/i.test(url || ""); }
   window.ASPRO.isVideo = isVideo;
 
-  // Card thumbnail: a still frame for videos, a background image for photos.
-  function thumbHTML(g) {
-    const cover = g[0];
-    const vids = g.filter(isVideo).length;
-    const badge = g.length > 1
-      ? `<span class="photo-badge">${vids ? "&#127909;" : "&#128247;"} ${g.length}</span>`
-      : (vids ? `<span class="photo-badge">&#127909; Video</span>` : "");
-    if (!cover) return `<div class="thumb"></div>`;
-    if (isVideo(cover))
-      return `<div class="thumb thumb-video">
-          <video src="${esc(cover)}#t=0.1" preload="metadata" muted playsinline></video>
-          <span class="play-badge" aria-hidden="true"></span>${badge}
+  // Card thumbnail markup that works for both images and videos
+  function thumbInner(cover, count) {
+    const vid = isVideo(cover);
+    return `
+        <div class="thumb ${vid ? "is-video" : ""}" style="${!vid && cover ? `background-image:url('${esc(cover)}')` : ""}">
+          ${vid ? `<video class="thumb-vid" muted playsinline preload="metadata" src="${esc(cover)}#t=0.1"></video><span class="play-badge">&#9658;</span>` : ""}
+          ${count > 1 ? `<span class="photo-badge">&#128247; ${count}</span>` : ""}
         </div>`;
-    return `<div class="thumb" style="background-image:url('${esc(cover)}')">${badge}</div>`;
   }
 
   function drawProjects(mount, items, cat) {
@@ -187,7 +195,7 @@
       const g = galleryOf(p);
       return `
       <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
-        ${thumbHTML(g)}
+        ${thumbInner(g[0], g.length)}
         <div class="body">
           <span class="tag">${esc(CATS[p.category] || p.category || "Project")}</span>
           <h3 style="margin:.5em 0 .3em;font-size:1.2rem">${esc(p.title)}</h3>
@@ -205,14 +213,10 @@
     if (!bar) return;
     const cats = ["all", ...Object.keys(CATS)];
     bar.innerHTML = cats.map((c, i) =>
-      `<button class="btn ${i === 0 ? "btn-dark" : "btn"}" data-cat="${c}"
-        style="${i === 0 ? "" : "background:#fff;border:1px solid var(--line)"}">
-        ${c === "all" ? "All" : CATS[c]}</button>`).join("");
+      `<button class="${i === 0 ? "active" : ""}" data-cat="${c}">${c === "all" ? "All" : CATS[c]}</button>`).join("");
     bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-      bar.querySelectorAll("button").forEach(x => {
-        x.className = "btn"; x.style = "background:#fff;border:1px solid var(--line)";
-      });
-      b.className = "btn btn-dark"; b.style = "";
+      bar.querySelectorAll("button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
       drawProjects(mount, items, b.dataset.cat);
     }));
   }
@@ -237,73 +241,14 @@
     const mount = document.getElementById(mountId);
     if (!mount) return;
     mount.innerHTML = `<div class="skeleton"></div><div class="skeleton"></div>`;
-    let data = null, error = "not-configured";
-    if (sb) {
-      // Only approved testimonials are public. (Row-level security enforces this
-      // too — the filter just keeps the intent obvious.)
-      let res = await sb.from("testimonials").select("*").eq("approved", true)
-                        .order("sort_order", { ascending: true });
-      // Fall back gracefully if the approved column hasn't been added yet.
-      if (res.error && /approved/i.test(res.error.message || ""))
-        res = await sb.from("testimonials").select("*").order("sort_order", { ascending: true });
-      data = res.data; error = res.error;
-    }
+    const { data, error } = await fetchTable("testimonials", { col: "sort_order", asc: true });
     const items = (data && data.length) ? data : (error ? SAMPLE.testimonials : []);
-    if (!items.length) {
-      mount.innerHTML = `<p class="note">No testimonials published yet — be the first to leave one below.</p>`;
-      return;
-    }
+    if (!items.length) { mount.innerHTML = `<p class="note">Testimonials coming soon.</p>`; return; }
     mount.innerHTML = items.map(t => `
       <blockquote class="quote">
         <p>&ldquo;${esc(t.quote)}&rdquo;</p>
         <div class="who">${esc(t.author)}<span>${esc(t.role || "")}</span></div>
       </blockquote>`).join("");
-  };
-
-  /* ---- Public testimonial submission (lands in the admin panel as pending) ---- */
-  window.ASPRO.initTestimonialForm = function (formId, statusId) {
-    const form = document.getElementById(formId);
-    const status = document.getElementById(statusId);
-    if (!form || !status) return;
-    const say = (cls, msg) => { status.innerHTML = `<div class="alert alert-${cls}">${msg}</div>`; };
-
-    if (!sb) { say("err", "The testimonial form isn't connected yet. Please email us instead."); return; }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      status.innerHTML = "";
-      const fd = new FormData(form);
-
-      // Honeypot: real people never fill a hidden field; bots usually do.
-      if (String(fd.get("company_website") || "").trim()) {
-        form.reset();
-        say("ok", "Thank you — your testimonial has been submitted for review.");
-        return;
-      }
-
-      const author = String(fd.get("author") || "").trim().replace(/\s+/g, " ");
-      const quote = String(fd.get("quote") || "").trim();
-      if (author.length < 2) { say("err", "Please enter your name."); return; }
-      if (author.length > 80) { say("err", "Please use a shorter name."); return; }
-      if (quote.length < 10) { say("err", "Please write at least a sentence about your experience."); return; }
-      if (quote.length > 2000) { say("err", "Please keep your testimonial under 2000 characters."); return; }
-
-      const btn = form.querySelector("[type=submit]");
-      const orig = btn.textContent;
-      btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Sending…`;
-      try {
-        const { error } = await sb.from("testimonials")
-          .insert({ author, quote, approved: false, sort_order: 0 });
-        if (error) throw error;
-        form.reset();
-        say("ok", "Thank you! Your testimonial has been submitted and will appear once we've reviewed it.");
-      } catch (err) {
-        console.error("Testimonial submit failed:", err);
-        say("err", "Sorry, we couldn't submit that just now. Please try again, or email us directly.");
-      } finally {
-        btn.disabled = false; btn.textContent = orig;
-      }
-    });
   };
 
   window.ASPRO.renderBTS = async function (mountId) {
@@ -317,7 +262,7 @@
       const g = galleryOf(b);
       return `
       <article class="card ${g.length ? "card-clickable" : ""}" data-gi="${i}">
-        ${thumbHTML(g)}
+        ${thumbInner(g[0], g.length)}
         <div class="body">
           <h3 style="margin:.2em 0 .4em;font-size:1.15rem">${esc(b.title)}</h3>
           <p class="note">${esc(b.body || "")}</p>
@@ -330,7 +275,7 @@
     }));
   };
 
-  /* ---- Lightbox gallery (photos + videos) ---- */
+  /* ---- Lightbox gallery ---- */
   function openGallery(images, start, title) {
     images = (images || []).filter(Boolean);
     if (!images.length) return;
@@ -343,39 +288,27 @@
       overlay.innerHTML =
         `<button class="lb-close" aria-label="Close">&times;</button>
          <button class="lb-prev" aria-label="Previous">&#10094;</button>
-         <img class="lb-img" alt="">
-         <video class="lb-video" controls playsinline preload="metadata"></video>
+         <div class="lb-media"></div>
          <button class="lb-next" aria-label="Next">&#10095;</button>
          <div class="lb-caption"></div>`;
       document.body.appendChild(overlay);
     }
-    const img = overlay.querySelector(".lb-img");
-    const vid = overlay.querySelector(".lb-video");
+    const media = overlay.querySelector(".lb-media");
     const cap = overlay.querySelector(".lb-caption");
     const prev = overlay.querySelector(".lb-prev");
     const next = overlay.querySelector(".lb-next");
     const multi = images.length > 1;
     prev.style.display = next.style.display = multi ? "" : "none";
-    function stopVideo() { try { vid.pause(); vid.removeAttribute("src"); vid.load(); } catch (_) {} }
     function show() {
-      const src = images[idx];
-      if (isVideo(src)) {
-        img.style.display = "none"; img.removeAttribute("src");
-        vid.style.display = ""; vid.src = src;
-      } else {
-        stopVideo();
-        vid.style.display = "none";
-        img.style.display = ""; img.src = src;
-      }
+      const url = images[idx];
+      media.innerHTML = isVideo(url)
+        ? `<video class="lb-vid" src="${esc(url)}" controls autoplay playsinline></video>`
+        : `<img class="lb-img" src="${esc(url)}" alt="">`;
       cap.textContent = (title ? title + " " : "") + (multi ? `(${idx + 1}/${images.length})` : "");
     }
-    function go(d) { stopVideo(); idx = (idx + d + images.length) % images.length; show(); }
-    function close() { stopVideo(); overlay.classList.remove("open"); document.removeEventListener("keydown", key); }
-    function key(e) {
-      // Let the video's own controls own the spacebar / arrows when it has focus.
-      if (document.activeElement === vid && e.key !== "Escape") return;
-      if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1);
-    }
+    function go(d) { idx = (idx + d + images.length) % images.length; show(); }
+    function close() { overlay.classList.remove("open"); media.innerHTML = ""; document.removeEventListener("keydown", key); }
+    function key(e) { if (e.key === "Escape") close(); else if (e.key === "ArrowLeft") go(-1); else if (e.key === "ArrowRight") go(1); }
     prev.onclick = (e) => { e.stopPropagation(); go(-1); };
     next.onclick = (e) => { e.stopPropagation(); go(1); };
     overlay.querySelector(".lb-close").onclick = close;
